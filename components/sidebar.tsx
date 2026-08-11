@@ -15,6 +15,7 @@ import {
   Settings,
   Code,
   Zap,
+  GitBranch,
 } from '@/lib/icons';
 
 export function Sidebar() {
@@ -23,6 +24,7 @@ export function Sidebar() {
   const navItems = [
     { id: 'home', label: 'Home', icon: Home },
     { id: 'nexus', label: 'Nexus', icon: Zap },
+    { id: 'canvas', label: 'Canvas', icon: GitBranch },
     { id: 'chat', label: 'Chat', icon: ChatIcon },
     { id: 'swarms', label: 'Swarms', icon: Grid3x3 },
     { id: 'skills', label: 'Skills', icon: Puzzle },

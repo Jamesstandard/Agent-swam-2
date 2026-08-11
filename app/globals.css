@@ -278,6 +278,8 @@
   .nexus-agent-dot.working { @apply bg-cyan-300; box-shadow: 0 0 10px rgba(103, 232, 249, 0.8); }
   .nexus-agent-dot.blocked { @apply bg-amber-300; }
   .nexus-agent-dot.completed { @apply bg-emerald-300; }
+  .canvas-grid { background-color: #111318; background-image: radial-gradient(rgba(148,163,184,.22) 1px, transparent 1px); background-size: 24px 24px; }
+  .canvas-node { backdrop-filter: blur(10px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

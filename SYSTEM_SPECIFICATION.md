@@ -857,7 +857,13 @@ Trust tiers describe intended capability gates but do not grant real permissions
 ### 23.5 Acceptance criteria
 Existing workspaces, navigation, settings, chat, Kanban swarms, memory, inspect, artifacts, and framework controls remain available. Nexus is usable at 360px, supports keyboard focus and reduced motion, provides visible guardrails for dangerous settings, and never implies that a preview has been deployed or submitted externally.
 
-## 24. Change Control
+## 24. Obsidian-Inspired Canvas Panel
+
+The Canvas workspace is an additive visual node board for mapping mission context, agent outputs, artifacts, and handoffs. It provides a non-linear grid with pan/zoom presentation, draggable text/agent/file/image/embed objects, directional SVG links, visual bounding groups, a floating creation toolbar, and a selected-node quick menu.
+
+This first implementation is client-side prototype state: nodes and links are seeded in memory and are not persisted to a database or synced across devices. Website embeds, file ingestion, image uploads, and true infinite-canvas persistence remain integration work; the current controls create safe local reference nodes without fetching external content or executing files. Existing MMM and Nexus workspaces remain unchanged and reachable through navigation.
+
+## 25. Change Control
 
 Changes to this specification SHOULD include:
 
