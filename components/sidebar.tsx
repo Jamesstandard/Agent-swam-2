@@ -102,7 +102,7 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border md:hidden z-40 flex items-center justify-around px-2 gap-1">
+      <nav className="hidden md:flex fixed bottom-0 left-0 right-0 h-16 bg-card border-t border-border z-40 items-center justify-around px-2 gap-1">
         {navItems.map(({ id, label, icon: Icon }) => (
           <button
             key={id}

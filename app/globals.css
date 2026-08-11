@@ -281,7 +281,10 @@
   .canvas-grid { background-color: #111318; background-image: radial-gradient(rgba(148,163,184,.22) 1px, transparent 1px); background-size: 24px 24px; }
   .canvas-node { backdrop-filter: blur(10px); }
   .graph-grid { background-color: #0d1015; background-image: radial-gradient(rgba(103,232,249,.16) 1px, transparent 1px), linear-gradient(rgba(103,232,249,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(103,232,249,.025) 1px, transparent 1px); background-size: 24px 24px, 120px 120px, 120px 120px; }
+  .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
