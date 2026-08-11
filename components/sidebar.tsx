@@ -16,6 +16,7 @@ import {
   Code,
   Zap,
   GitBranch,
+  Network,
 } from '@/lib/icons';
 
 export function Sidebar() {
@@ -25,6 +26,7 @@ export function Sidebar() {
     { id: 'home', label: 'Home', icon: Home },
     { id: 'nexus', label: 'Nexus', icon: Zap },
     { id: 'canvas', label: 'Canvas', icon: GitBranch },
+    { id: 'graph', label: 'Graph', icon: Network },
     { id: 'chat', label: 'Chat', icon: ChatIcon },
     { id: 'swarms', label: 'Swarms', icon: Grid3x3 },
     { id: 'skills', label: 'Skills', icon: Puzzle },

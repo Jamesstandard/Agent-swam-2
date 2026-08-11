@@ -53,7 +53,7 @@ export interface AppState {
   // Navigation
   sidebarOpen: boolean;
   settingsOpen: boolean;
-  currentView: 'home' | 'chat' | 'swarms' | 'skills' | 'memory' | 'inspect' | 'artifacts' | 'nexus' | 'canvas';
+  currentView: 'home' | 'chat' | 'swarms' | 'skills' | 'memory' | 'inspect' | 'artifacts' | 'nexus' | 'canvas' | 'graph';
 
   // Nexus Swarm
   trustTier: TrustTier;

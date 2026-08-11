@@ -35,6 +35,7 @@ export {
   Zap,
   Code,
   GitBranch,
+  Network,
   Play,
   Pause,
   Square,

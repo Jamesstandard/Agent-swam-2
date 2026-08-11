@@ -863,7 +863,11 @@ The Canvas workspace is an additive visual node board for mapping mission contex
 
 This first implementation is client-side prototype state: nodes and links are seeded in memory and are not persisted to a database or synced across devices. Website embeds, file ingestion, image uploads, and true infinite-canvas persistence remain integration work; the current controls create safe local reference nodes without fetching external content or executing files. Existing MMM and Nexus workspaces remain unchanged and reachable through navigation.
 
-## 25. Change Control
+## 25. Obsidian-Inspired Graph View
+
+The Graph workspace is an additive force-directed swarm visualization of agent relationships. Agent nodes scale with connection degree; directional links, hover focus, tag labels, filters, groups, orphan visibility, arrowheads, and physics sliders are exposed through the control panel. Graph data is currently a local typed prototype seeded from agent relationships and is not yet persisted or backed by Markdown link parsing.
+
+## 26. Change Control
 
 Changes to this specification SHOULD include:
 

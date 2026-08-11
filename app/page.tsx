@@ -20,6 +20,7 @@ import { InspectView } from '@/components/views/inspect-view';
 import { ArtifactsView } from '@/components/views/artifacts-view';
 import { NexusView } from '@/components/views/nexus-view';
 import { CanvasView } from '@/components/views/canvas-view';
+import { GraphView } from '@/components/views/graph-view';
 
 export default function HomePage() {
   const { currentView, setCurrentView } = useAppStore();
@@ -34,6 +35,7 @@ export default function HomePage() {
   if (currentView === 'inspect') return <InspectView />;
   if (currentView === 'nexus') return <NexusView />;
   if (currentView === 'canvas') return <CanvasView />;
+  if (currentView === 'graph') return <GraphView />;
 
   // Home Dashboard
   return (
