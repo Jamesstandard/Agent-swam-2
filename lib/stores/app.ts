@@ -1,10 +1,70 @@
 import { create } from 'zustand';
 
+export type TrustTier = 'observer' | 'operator' | 'executor';
+export type CloneMode = 'advisory' | 'autonomous';
+export type MissionApprovalPolicy = 'always' | 'risk-based' | 'never';
+export type TopologyPreference = 'adaptive' | 'pipeline' | 'mesh';
+export type PermissionPosture = 'deny-by-default' | 'role-allowlist';
+export type CloneContextScope = 'profile-only' | 'profile-and-history' | 'full-mission';
+
+export interface NexusAdvancedSettings {
+  missionApprovalPolicy: MissionApprovalPolicy;
+  confirmIrreversibleActions: boolean;
+  maxConcurrentAgents: number;
+  computeCreditsPerMission: number;
+  dailySpendCap: number;
+  missionTimeoutMinutes: number;
+  retryLimit: number;
+  agentHeartbeatSeconds: number;
+  topologyPreference: TopologyPreference;
+  defaultAgentAutonomy: 'supervised' | 'guided' | 'autonomous';
+  confidenceHandoffThreshold: number;
+  permissionPosture: PermissionPosture;
+  browserRecording: boolean;
+  auditRetentionDays: number;
+  ephemeralMemoryRetentionHours: number;
+  cloneContextScope: CloneContextScope;
+  sensitiveActionNotifications: boolean;
+  reducedDataTelemetry: boolean;
+}
+
+export const defaultNexusAdvancedSettings: NexusAdvancedSettings = {
+  missionApprovalPolicy: 'always',
+  confirmIrreversibleActions: true,
+  maxConcurrentAgents: 6,
+  computeCreditsPerMission: 100,
+  dailySpendCap: 25,
+  missionTimeoutMinutes: 180,
+  retryLimit: 2,
+  agentHeartbeatSeconds: 30,
+  topologyPreference: 'adaptive',
+  defaultAgentAutonomy: 'supervised',
+  confidenceHandoffThreshold: 0.8,
+  permissionPosture: 'deny-by-default',
+  browserRecording: true,
+  auditRetentionDays: 30,
+  ephemeralMemoryRetentionHours: 24,
+  cloneContextScope: 'profile-only',
+  sensitiveActionNotifications: true,
+  reducedDataTelemetry: true,
+};
+
 export interface AppState {
   // Navigation
   sidebarOpen: boolean;
   settingsOpen: boolean;
-  currentView: 'home' | 'chat' | 'swarms' | 'skills' | 'memory' | 'inspect' | 'artifacts';
+  currentView: 'home' | 'chat' | 'swarms' | 'skills' | 'memory' | 'inspect' | 'artifacts' | 'nexus';
+
+  // Nexus Swarm
+  trustTier: TrustTier;
+  cloneMode: CloneMode;
+  activeMissionId: string | null;
+  nexusAdvanced: NexusAdvancedSettings;
+  setTrustTier: (tier: TrustTier) => void;
+  setCloneMode: (mode: CloneMode) => void;
+  setActiveMissionId: (id: string | null) => void;
+  updateNexusAdvanced: (updates: Partial<NexusAdvancedSettings>) => void;
+  resetNexusAdvanced: () => void;
   
   // Appearance
   theme: 'light' | 'dark' | 'auto';
@@ -80,6 +140,19 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarOpen: true,
   settingsOpen: false,
   currentView: 'home',
+
+  // Nexus Swarm
+  trustTier: 'observer',
+  cloneMode: 'advisory',
+  activeMissionId: null,
+  nexusAdvanced: defaultNexusAdvancedSettings,
+  setTrustTier: (tier) => set({ trustTier: tier }),
+  setCloneMode: (mode) => set({ cloneMode: mode }),
+  setActiveMissionId: (id) => set({ activeMissionId: id }),
+  updateNexusAdvanced: (updates) => set((state) => ({
+    nexusAdvanced: { ...state.nexusAdvanced, ...updates },
+  })),
+  resetNexusAdvanced: () => set({ nexusAdvanced: defaultNexusAdvancedSettings }),
   
   // Appearance
   theme: 'light',

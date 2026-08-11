@@ -44,4 +44,8 @@ export {
   VolumeX,
   Mic,
   FileText,
+  Shield,
+  Sparkles,
+  SlidersHorizontal,
+  RotateCcw,
 } from 'lucide-react';

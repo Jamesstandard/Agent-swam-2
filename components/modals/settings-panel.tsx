@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Moon, Sun } from '@/lib/icons';
+import { X, Moon, Sun, Shield, SlidersHorizontal, RotateCcw } from '@/lib/icons';
 import { useAppStore } from '@/lib/stores/app';
 
 interface SettingsPanelProps {
@@ -10,7 +10,7 @@ interface SettingsPanelProps {
 }
 
 export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
-  const { theme, setTheme } = useAppStore();
+  const { theme, setTheme, trustTier, setTrustTier, cloneMode, setCloneMode, nexusAdvanced, updateNexusAdvanced, resetNexusAdvanced } = useAppStore();
   const [autoSave, setAutoSave] = useState(true);
   const [notifications, setNotifications] = useState(true);
 
@@ -116,7 +116,17 @@ export function SettingsPanel({ isOpen, onClose }: SettingsPanelProps) {
           </div>
 
           {/* About Section */}
-          <div className="pt-6 border-t border-border">
+          <div className="border-t border-border pt-6">
+    <div className="mb-4 flex items-center gap-2"><Shield className="h-4 w-4 text-primary" /><h3 className="font-semibold text-foreground">Nexus Swarm Safety</h3></div>
+    <p className="mb-3 text-xs leading-5 text-muted-foreground">Prototype controls only. No external execution or credential storage is enabled.</p>
+    <div className="grid grid-cols-3 gap-2">{(['observer', 'operator', 'executor'] as const).map((tier) => <button key={tier} onClick={() => setTrustTier(tier)} className={`rounded-lg border p-2 text-xs capitalize ${trustTier === tier ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>{tier}</button>)}</div>
+    <div className="mt-3 grid grid-cols-2 gap-2">{(['advisory', 'autonomous'] as const).map((mode) => <button key={mode} onClick={() => setCloneMode(mode)} className={`rounded-lg border p-2 text-xs capitalize ${cloneMode === mode ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}>{mode} clone</button>)}</div>
+  </div>
+  <div className="border-t border-border pt-6">
+    <div className="mb-4 flex items-center justify-between"><div className="flex items-center gap-2"><SlidersHorizontal className="h-4 w-4 text-primary" /><h3 className="font-semibold text-foreground">Advanced Orchestration</h3></div><button onClick={resetNexusAdvanced} aria-label="Reset advanced settings"><RotateCcw className="h-4 w-4" /></button></div>
+    <div className="flex flex-col gap-3"><label className="flex flex-col gap-1 text-xs text-muted-foreground">Max concurrent agents<input type="number" min="1" max="12" value={nexusAdvanced.maxConcurrentAgents} onChange={(e) => updateNexusAdvanced({ maxConcurrentAgents: Math.min(12, Math.max(1, Number(e.target.value))) })} className="rounded-lg border border-border bg-input p-2 text-sm text-foreground" /></label><label className="flex flex-col gap-1 text-xs text-muted-foreground">Compute credits per mission<input type="number" min="10" max="1000" value={nexusAdvanced.computeCreditsPerMission} onChange={(e) => updateNexusAdvanced({ computeCreditsPerMission: Math.min(1000, Math.max(10, Number(e.target.value))) })} className="rounded-lg border border-border bg-input p-2 text-sm text-foreground" /></label><label className="flex flex-col gap-1 text-xs text-muted-foreground">Approval policy<select value={nexusAdvanced.missionApprovalPolicy} onChange={(e) => updateNexusAdvanced({ missionApprovalPolicy: e.target.value as typeof nexusAdvanced.missionApprovalPolicy })} className="rounded-lg border border-border bg-input p-2 text-sm text-foreground"><option value="always">Always approve</option><option value="risk-based">Risk-based</option><option value="never">Never approve</option></select></label><label className="flex flex-col gap-1 text-xs text-muted-foreground">Topology preference<select value={nexusAdvanced.topologyPreference} onChange={(e) => updateNexusAdvanced({ topologyPreference: e.target.value as typeof nexusAdvanced.topologyPreference })} className="rounded-lg border border-border bg-input p-2 text-sm text-foreground"><option value="adaptive">Adaptive mesh</option><option value="pipeline">Pipeline</option><option value="mesh">Mesh</option></select></label><label className="flex items-center justify-between rounded-lg bg-secondary/30 p-3 text-sm text-foreground">Confirm irreversible actions<input type="checkbox" checked={nexusAdvanced.confirmIrreversibleActions} onChange={(e) => updateNexusAdvanced({ confirmIrreversibleActions: e.target.checked })} /></label><label className="flex items-center justify-between rounded-lg bg-secondary/30 p-3 text-sm text-foreground">Sensitive action alerts<input type="checkbox" checked={nexusAdvanced.sensitiveActionNotifications} onChange={(e) => updateNexusAdvanced({ sensitiveActionNotifications: e.target.checked })} /></label><label className="flex items-center justify-between rounded-lg bg-secondary/30 p-3 text-sm text-foreground">Reduced-data telemetry<input type="checkbox" checked={nexusAdvanced.reducedDataTelemetry} onChange={(e) => updateNexusAdvanced({ reducedDataTelemetry: e.target.checked })} /></label></div>
+  </div>
+  <div className="pt-6 border-t border-border">
             <h3 className="font-semibold text-foreground mb-2">About</h3>
             <div className="text-sm text-muted-foreground space-y-2">
               <p>Multi Meta Matrix v1.0</p>

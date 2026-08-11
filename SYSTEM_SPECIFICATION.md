@@ -840,7 +840,24 @@ The system is ready for a production beta when:
 
 ---
 
-## 23. Change Control
+## 23. Nexus Swarm Enhancement and Configuration Contract
+
+### 23.1 Product model
+Nexus Swarm is an additive mission-control layer over MMM. Users describe a mission in natural language; the client synthesizes a preview of a dynamic swarm, including role archetypes, tools, trust requirements, cost, constraints, and handoff points. The current implementation is a deterministic local prototype: it does not call an LLM, execute tools, submit forms, deploy services, move funds, or access credentials.
+
+### 23.2 Configuration taxonomy
+Settings are organized into existing application preferences plus Nexus controls: trust tier (`observer`, `operator`, `executor`), Digital Clone mode (`advisory`, `autonomous`), approval policy, irreversible-action confirmation, maximum concurrent agents, compute credits per mission, daily spend cap, mission timeout, retry limit, heartbeat interval, topology preference, agent autonomy, confidence handoff threshold, tool/network permission posture, browser recording, audit retention, ephemeral-memory retention, clone context scope, sensitive-action notifications, and reduced-data telemetry.
+
+### 23.3 Precedence and safe defaults
+Configuration precedence is global defaults → mission preview overrides → explicit user approval. Safe defaults require approval, keep the Clone advisory, deny network/tool access by default, cap concurrency at six agents, limit mission credits, and retain reduced-data telemetry. Numeric settings are clamped to bounded ranges in the UI; production services must repeat validation server-side before execution.
+
+### 23.4 Trust and clone safeguards
+Trust tiers describe intended capability gates but do not grant real permissions in this prototype. Advisory mode pauses representative actions for review. Autonomous mode is visibly labeled prototype-only and remains unable to execute external actions. Secrets remain owned by future integrations and must never be entered, displayed, or persisted in this client state.
+
+### 23.5 Acceptance criteria
+Existing workspaces, navigation, settings, chat, Kanban swarms, memory, inspect, artifacts, and framework controls remain available. Nexus is usable at 360px, supports keyboard focus and reduced motion, provides visible guardrails for dangerous settings, and never implies that a preview has been deployed or submitted externally.
+
+## 24. Change Control
 
 Changes to this specification SHOULD include:
 

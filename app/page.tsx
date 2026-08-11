@@ -18,6 +18,7 @@ import { SkillsView } from '@/components/views/skills-view';
 import { MemoryView } from '@/components/views/memory-view';
 import { InspectView } from '@/components/views/inspect-view';
 import { ArtifactsView } from '@/components/views/artifacts-view';
+import { NexusView } from '@/components/views/nexus-view';
 
 export default function HomePage() {
   const { currentView, setCurrentView } = useAppStore();
@@ -30,6 +31,7 @@ export default function HomePage() {
   if (currentView === 'artifacts') return <ArtifactsView />;
   if (currentView === 'memory') return <MemoryView />;
   if (currentView === 'inspect') return <InspectView />;
+  if (currentView === 'nexus') return <NexusView />;
 
   // Home Dashboard
   return (
