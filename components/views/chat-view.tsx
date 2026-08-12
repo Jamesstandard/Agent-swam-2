@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useChatStore, ChatConversation, ChatMessage } from '@/lib/stores/chat';
-import { Plus, Send, Trash2, MessageSquare as MessageIcon, Mic, Square } from '@/lib/icons';
+import { Plus, Send, Trash2, MessageSquare as MessageIcon, Mic, Square, X } from '@/lib/icons';
 
 export function ChatView() {
   const { conversations, currentConversationId, addConversation, setCurrentConversation, addMessage, deleteConversation } = useChatStore();
@@ -10,9 +10,17 @@ export function ChatView() {
   const [selectedFramework, setSelectedFramework] = useState<'crewai' | 'autogen' | 'openclaw' | 'langgraph'>('crewai');
   const [isRecording, setIsRecording] = useState(false);
   const [transcribedText, setTranscribedText] = useState('');
+  const [mobileRailOpen, setMobileRailOpen] = useState(false);
+  const [micError, setMicError] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const replyTimersRef = useRef<number[]>([]);
 
-  const currentConv = conversations.find((c) => c.id === currentConversationId);
+  const currentConv = conversations.find((conversation) => conversation.id === currentConversationId);
+
+  useEffect(() => () => {
+    replyTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    mediaRecorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+  }, []);
 
   const handleNewConversation = () => {
     const newConv: ChatConversation = {
@@ -24,240 +32,88 @@ export function ChatView() {
       framework: selectedFramework,
     };
     addConversation(newConv);
+    setMobileRailOpen(false);
   };
 
   const handleSendMessage = () => {
-    if (!messageInput.trim() || !currentConversationId) return;
+    const content = messageInput.trim() || transcribedText.trim();
+    if (!content || !currentConversationId || isRecording) return;
 
-    const userMessage: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      role: 'user',
-      content: messageInput,
-      timestamp: Date.now(),
-      status: 'sent',
-    };
-
+    const now = Date.now();
+    const userMessage: ChatMessage = { id: `msg-${now}`, role: 'user', content, timestamp: now, status: 'sent' };
     addMessage(currentConversationId, userMessage);
     setMessageInput('');
+    setTranscribedText('');
 
-    // Simulate assistant response
-    setTimeout(() => {
-      const assistantMessage: ChatMessage = {
+    const timer = window.setTimeout(() => {
+      addMessage(currentConversationId, {
         id: `msg-${Date.now()}-1`,
         role: 'assistant',
-        content: 'I received your message and I&apos;m processing it with ' + selectedFramework + '...',
+        content: `I received your message and I’m processing it with ${selectedFramework}…`,
         timestamp: Date.now(),
         status: 'sent',
-      };
-      addMessage(currentConversationId, assistantMessage);
+      });
     }, 500);
+    replyTimersRef.current.push(timer);
   };
 
   const handleStartRecording = async () => {
+    setMicError('');
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setMicError('Voice input is not supported in this browser.');
+      return;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
       setIsRecording(true);
-
-      const audioChunks: BlobPart[] = [];
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
+      recorder.onstop = () => {
+        setTranscribedText('Voice note ready to send.');
+        stream.getTracks().forEach((track) => track.stop());
       };
-
-      mediaRecorder.onstop = () => {
-        // Simulate voice-to-text transcription
-        setTranscribedText('This is a simulated transcription of your voice message...');
-      };
-
-      mediaRecorder.start();
-    } catch (error) {
-      console.error('[v0] Microphone access denied:', error);
+      recorder.start();
+    } catch {
+      setMicError('Microphone access was blocked. Check browser permissions and try again.');
+      setIsRecording(false);
     }
   };
 
   const handleStopRecording = () => {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-    }
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      {/* Header */}
-      <div className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="h-full px-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Chat</h1>
-          <button
-            onClick={handleNewConversation}
-            className="btn-lobe-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New Chat
-          </button>
+    <main className="flex min-h-full min-w-0 flex-col bg-background">
+      <header className="sticky top-0 z-20 flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border bg-card/90 px-3 backdrop-blur-sm sm:px-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <button aria-label="Open conversations" onClick={() => setMobileRailOpen(true)} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary lg:hidden"><MessageIcon /></button>
+          <div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Nexus chat</p><h1 className="truncate text-lg font-bold text-foreground sm:text-xl">Workspace conversations</h1></div>
         </div>
+        <button onClick={handleNewConversation} className="btn-lobe-primary flex shrink-0 items-center gap-2 px-3 py-2 text-sm"><Plus /> <span className="hidden sm:inline">New Chat</span></button>
+      </header>
+
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        <aside className={`absolute inset-y-0 left-0 z-30 w-[min(86vw,18rem)] border-r border-border bg-card shadow-xl transition-transform duration-200 lg:relative lg:z-0 lg:w-64 lg:translate-x-0 lg:shadow-none ${mobileRailOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <div className="flex h-full flex-col gap-3 p-3 sm:p-4">
+            <div className="flex items-center justify-between"><p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conversations</p><button aria-label="Close conversations" onClick={() => setMobileRailOpen(false)} className="rounded-lg p-2 text-muted-foreground hover:bg-secondary lg:hidden"><X /></button></div>
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">Framework<select value={selectedFramework} onChange={(event) => setSelectedFramework(event.target.value as typeof selectedFramework)} className="input-lobe px-3 py-2 text-sm"><option value="crewai">CrewAI</option><option value="autogen">AutoGen</option><option value="openclaw">OpenClaw</option><option value="langgraph">LangGraph</option></select></label>
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+              {conversations.map((conv) => <div key={conv.id} className={`group flex items-center gap-2 rounded-xl border p-2 transition-colors ${currentConversationId === conv.id ? 'border-primary/40 bg-secondary' : 'border-transparent hover:bg-secondary/60'}`}><button onClick={() => { setCurrentConversation(conv.id); setMobileRailOpen(false); }} className="min-w-0 flex-1 text-left"><p className="truncate text-sm font-medium text-foreground">{conv.title}</p><p className="text-xs text-muted-foreground">{conv.messages.length} messages</p></button><button aria-label={`Delete ${conv.title}`} onClick={() => deleteConversation(conv.id)} className="rounded-lg p-2 text-muted-foreground opacity-70 hover:bg-destructive/10 hover:text-destructive"><Trash2 /></button></div>)}
+              {conversations.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No conversations yet.</p>}
+            </div>
+          </div>
+        </aside>
+        {mobileRailOpen && <button aria-label="Close conversation menu" onClick={() => setMobileRailOpen(false)} className="absolute inset-0 z-20 bg-background/60 lg:hidden" />}
+
+        {currentConv ? <section className="flex min-w-0 flex-1 flex-col">
+          <div className="flex min-h-14 shrink-0 items-center justify-between border-b border-border bg-card px-3 sm:px-5"><div className="min-w-0"><h2 className="truncate font-bold text-foreground">{currentConv.title}</h2><p className="text-xs capitalize text-muted-foreground">{currentConv.framework} runtime</p></div><span className="hidden rounded-full bg-secondary px-3 py-1 text-xs text-secondary-foreground sm:inline">{currentConv.messages.length} messages</span></div>
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-5 sm:px-6 sm:py-6"><div className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-end gap-4">{currentConv.messages.length === 0 ? <div className="flex flex-1 items-center justify-center text-center"><div><MessageIcon className="mx-auto mb-3 text-muted-foreground/30" /><p className="text-sm text-muted-foreground">Start a conversation with your swarm workspace.</p></div></div> : currentConv.messages.map((msg) => <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}><article className={`max-w-[92%] rounded-2xl px-4 py-3 sm:max-w-[75%] ${msg.role === 'user' ? 'rounded-br-md bg-primary text-primary-foreground' : 'rounded-bl-md bg-secondary text-secondary-foreground'}`}><p className="whitespace-pre-wrap break-words text-sm leading-6">{msg.content}</p><p className="mt-1 text-[11px] opacity-70">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p></article></div>)}</div></div>
+          <div className="shrink-0 border-t border-border bg-card/95 p-3 sm:p-5"><div className="mx-auto flex w-full max-w-3xl flex-col gap-2">{(transcribedText || micError) && <div role={micError ? 'alert' : 'status'} className={`rounded-xl border px-3 py-2 text-xs ${micError ? 'border-destructive/40 text-destructive' : 'border-border text-muted-foreground'}`}>{micError || transcribedText}</div>}<div className="flex items-end gap-2"><textarea aria-label="Message" value={messageInput} onChange={(event) => setMessageInput(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); handleSendMessage(); } }} placeholder="Message your swarm..." rows={1} disabled={isRecording} className="input-lobe min-h-11 max-h-32 flex-1 resize-none py-3" /><button aria-label={isRecording ? 'Stop recording' : 'Start voice input'} onClick={isRecording ? handleStopRecording : handleStartRecording} className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${isRecording ? 'bg-destructive text-destructive-foreground' : 'btn-lobe-secondary'}`}>{isRecording ? <Square /> : <Mic />}</button><button aria-label="Send message" onClick={handleSendMessage} disabled={isRecording || !(messageInput.trim() || transcribedText.trim())} className="btn-lobe-primary flex size-11 shrink-0 items-center justify-center p-0 disabled:opacity-50"><Send /></button></div><p className="hidden text-[11px] text-muted-foreground sm:block">Enter to send · Shift + Enter for a new line</p></div></div>
+        </section> : <section className="flex flex-1 items-center justify-center p-6 text-center"><div><MessageIcon className="mx-auto mb-4 text-muted-foreground/30" /><h2 className="text-xl font-bold text-foreground">No chat selected</h2><p className="mb-5 mt-2 text-sm text-muted-foreground">Create a new conversation to begin.</p><button onClick={handleNewConversation} className="btn-lobe-primary inline-flex items-center gap-2"><Plus /> New Chat</button></div></section>}
       </div>
-
-      <div className="flex h-[calc(100vh-64px)]">
-        {/* Sidebar - Conversations List */}
-        <div className="w-64 border-r border-border bg-card/30 overflow-y-auto">
-          <div className="p-4 space-y-2">
-            {conversations.map((conv) => (
-              <button
-                key={conv.id}
-                onClick={() => setCurrentConversation(conv.id)}
-                className={`w-full p-3 rounded-lg text-left transition-all duration-200 group flex items-center justify-between ${
-                  currentConversationId === conv.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-secondary text-foreground'
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-sm">{conv.title}</p>
-                  <p className="text-xs opacity-70">{conv.messages.length} messages</p>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteConversation(conv.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </button>
-            ))}
-            {conversations.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-8">
-                No conversations yet
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Main Chat Area */}
-        {currentConv ? (
-          <div className="flex-1 flex flex-col">
-            {/* Chat Header */}
-            <div className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
-              <div>
-                <h2 className="font-bold text-foreground">{currentConv.title}</h2>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {currentConv.framework}
-                </p>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {currentConv.messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center">
-                  <div className="text-center">
-                    <MessageIcon className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                    <p className="text-muted-foreground">No messages yet. Start typing!</p>
-                  </div>
-                </div>
-              ) : (
-                currentConv.messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-sm rounded-lg px-4 py-2 ${
-                        msg.role === 'user'
-                          ? 'bg-primary text-primary-foreground rounded-br-none'
-                          : 'bg-secondary text-secondary-foreground rounded-bl-none'
-                      }`}
-                    >
-                      <p className="text-sm break-words">{msg.content}</p>
-                      <p className="text-xs opacity-70 mt-1">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Input Area */}
-            <div className="border-t border-border bg-card p-4 md:p-6">
-              {/* Transcription Display */}
-              {transcribedText && (
-                <div className="mb-3 p-3 bg-secondary rounded-lg border border-border">
-                  <p className="text-xs text-muted-foreground mb-1">Voice Transcription:</p>
-                  <p className="text-sm text-foreground">{transcribedText}</p>
-                </div>
-              )}
-
-              <div className="flex gap-2 md:gap-3">
-                <input
-                  type="text"
-                  value={messageInput || transcribedText}
-                  onChange={(e) => {
-                    setMessageInput(e.target.value);
-                    setTranscribedText('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !isRecording) {
-                      e.preventDefault();
-                      handleSendMessage();
-                    }
-                  }}
-                  placeholder="Type your message or use voice..."
-                  className="input-lobe flex-1"
-                  disabled={isRecording}
-                />
-
-                {/* Voice Input Button */}
-                <button
-                  onClick={isRecording ? handleStopRecording : handleStartRecording}
-                  className={`flex items-center justify-center w-12 h-12 rounded-lg font-medium transition-all duration-300 ${
-                    isRecording
-                      ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
-                      : 'btn-lobe-secondary hover:bg-secondary'
-                  }`}
-                  title={isRecording ? 'Stop recording' : 'Start voice input'}
-                >
-                  {isRecording ? (
-                    <Square className="w-4 h-4" />
-                  ) : (
-                    <Mic className="w-4 h-4" />
-                  )}
-                </button>
-
-                {/* Send Button */}
-                <button
-                  onClick={handleSendMessage}
-                  disabled={isRecording}
-                  className="btn-lobe-primary flex items-center gap-2 disabled:opacity-50"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <MessageIcon className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">No Chat Selected</h2>
-              <p className="text-muted-foreground mb-6">
-                Create a new chat or select an existing conversation
-              </p>
-              <button
-                onClick={handleNewConversation}
-                className="btn-lobe-primary flex items-center gap-2 mx-auto"
-              >
-                <Plus className="w-4 h-4" />
-                New Chat
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+    </main>
   );
 }
