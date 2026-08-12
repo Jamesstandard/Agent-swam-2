@@ -1,193 +1,36 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useSwarmsStore, Swarm, SwarmTask } from '@/lib/stores/swarms';
-import { Plus, Trash2, Grid3x3 } from '@/lib/icons';
+import { useEffect, useMemo, useState } from 'react';
+import { Plus, Trash2, Grid3x3, Play, ChevronDown } from '@/lib/icons';
+import { Activity, Route, Rocket } from 'lucide-react';
+import { makeTask, seedTasks, type Swarm, type SwarmTask, type TaskPriority, type TaskSchedule, useSwarmsStore } from '@/lib/stores/swarms';
+
+const nodes = ['NEXUS', 'ORCHESTRATOR', 'RESEARCH', 'BUILDER', 'VALIDATOR', 'PUBLISHER'];
+const statuses: SwarmTask['status'][] = ['todo', 'in-progress', 'review', 'completed', 'blocked'];
 
 export function SwarmsView() {
-  const { swarms, currentSwarmId, addSwarm, setCurrentSwarm, addTask, updateTask, deleteSwarm } = useSwarmsStore();
-  const [selectedFramework, setSelectedFramework] = useState<'crewai' | 'autogen' | 'openclaw' | 'langgraph'>('crewai');
+  const { swarms, currentSwarmId, addSwarm, setCurrentSwarm, addTask, updateTask, deleteTask, deployAgent, deleteSwarm } = useSwarmsStore();
+  const [selectedFramework, setSelectedFramework] = useState<Swarm['framework']>('langgraph');
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [filter, setFilter] = useState('all');
+  const [runtime, setRuntime] = useState<string | null>(null);
+  const current = swarms.find((s) => s.id === currentSwarmId);
 
-  const currentSwarm = swarms.find((s) => s.id === currentSwarmId);
+  const createSwarm = () => { const now = Date.now(); const swarm: Swarm = { id: `swarm-${now}`, name: `Mission ${swarms.length + 1}`, description: 'Nexus execution swarm', framework: selectedFramework, agents: [], tasks: seedTasks(), status: 'planning', createdAt: now, updatedAt: now }; addSwarm(swarm); };
+  const execute = (task: SwarmTask) => { if (!current) return; setRuntime(task.id); updateTask(current.id, task.id, { status: 'in-progress', activeNode: nodes[0], lastRunAt: Date.now(), executionCount: task.executionCount + 1 }); nodes.slice(1).forEach((node, index) => setTimeout(() => updateTask(current.id, task.id, { activeNode: node, status: index === nodes.length - 2 ? 'review' : 'in-progress' }), (index + 1) * 900)); setTimeout(() => { updateTask(current.id, task.id, { activeNode: undefined, status: 'completed', output: 'Mission route completed. Output validated by Nexus.' }); setRuntime(null); }, nodes.length * 900); };
+  const filtered = useMemo(() => current?.tasks.filter((task) => filter === 'all' || task.status === filter) ?? [], [current, filter]);
 
-  const handleNewSwarm = () => {
-    const newSwarm: Swarm = {
-      id: `swarm-${Date.now()}`,
-      name: `Swarm ${swarms.length + 1}`,
-      description: 'A new agent swarm',
-      framework: selectedFramework,
-      agents: [],
-      tasks: [],
-      status: 'planning',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    addSwarm(newSwarm);
-  };
+  return <main className="min-h-screen bg-background text-foreground">
+    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-card/85 px-4 py-3 backdrop-blur-xl md:px-6"><div><p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary">Nexus / Swarm control</p><h1 className="text-lg font-semibold">Mission task queue</h1></div><button aria-label="Create swarm" onClick={createSwarm} className="flex min-h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"><Plus className="size-4" /> New swarm</button></header>
+    <div className="flex min-h-[calc(100vh-65px)] flex-col md:flex-row"><aside className="w-full border-b border-border bg-card/40 p-3 md:w-64 md:border-b-0 md:border-r"><div className="mb-3 flex items-center justify-between"><span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Swarms</span><select aria-label="Framework" value={selectedFramework} onChange={(e) => setSelectedFramework(e.target.value as Swarm['framework'])} className="max-w-28 rounded-lg border border-border bg-input px-2 py-1 text-[10px] text-foreground"><option value="langgraph">LangGraph</option><option value="crewai">CrewAI</option><option value="autogen">AutoGen</option><option value="openclaw">OpenClaw</option></select></div><div className="flex gap-2 overflow-x-auto md:flex-col">{swarms.map((swarm) => <button key={swarm.id} onClick={() => setCurrentSwarm(swarm.id)} className={`min-w-40 rounded-xl border p-3 text-left ${currentSwarmId === swarm.id ? 'border-primary bg-primary/10' : 'border-border bg-card hover:bg-secondary'}`}><div className="flex items-center justify-between"><span className="truncate text-sm font-medium">{swarm.name}</span><Trash2 onClick={(e) => { e.stopPropagation(); deleteSwarm(swarm.id); }} className="size-3.5 text-muted-foreground" /></div><span className="text-[10px] text-muted-foreground">{swarm.agents.length} agents · {swarm.tasks.length} tasks</span></button>)}</div></aside>
+      {current ? <section className="min-w-0 flex-1 p-4 md:p-6"><div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><div className="flex items-center gap-2"><Activity className="size-4 text-primary" /><h2 className="text-xl font-bold">{current.name}</h2><span className="rounded-full bg-primary/15 px-2 py-1 text-[10px] uppercase text-primary">{current.status}</span></div><p className="mt-1 text-sm text-muted-foreground">{current.framework} runtime · {current.agents.filter((a) => a.deployed).length} deployed agents</p></div><div className="flex gap-2"><button onClick={() => deployAgent(current.id, { id: `agent-${Date.now()}`, name: 'Nexus Operator', role: 'Mission orchestrator', status: 'idle', description: 'Routes tasks through the graph and validates outputs.', tools: ['graph', 'memory', 'validator'] })} className="flex min-h-11 items-center gap-2 rounded-xl border border-primary/40 bg-primary/10 px-3 text-sm text-primary"><Rocket className="size-4" /> Deploy agent</button><button onClick={() => addTask(current.id, makeTask())} className="flex min-h-11 items-center gap-2 rounded-xl border border-border px-3 text-sm"><Plus className="size-4" /> Add task</button></div></div>
+        <div className="mb-4 flex flex-wrap gap-2">{['all', ...statuses].map((item) => <button key={item} onClick={() => setFilter(item)} className={`min-h-11 rounded-lg px-3 text-xs capitalize ${filter === item ? 'bg-primary text-primary-foreground' : 'bg-secondary text-muted-foreground'}`}>{item.replace('-', ' ')}</button>)}</div>
+        <div className="grid gap-3">{filtered.map((task) => <TaskCard key={task.id} task={task} expanded={expanded === task.id} executing={runtime === task.id} onToggle={() => setExpanded(expanded === task.id ? null : task.id)} onExecute={() => execute(task)} onUpdate={(updates) => updateTask(current.id, task.id, updates)} onDelete={() => deleteTask(current.id, task.id)} />)}</div>
+      </section> : <section className="flex flex-1 items-center justify-center p-8"><div className="text-center"><Grid3x3 className="mx-auto mb-4 size-12 text-primary/50" /><h2 className="text-xl font-bold">No mission selected</h2><p className="mb-5 mt-2 text-sm text-muted-foreground">Create a swarm to generate its advanced TODO automatically.</p><button onClick={createSwarm} className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground">Create mission swarm</button></div></section>}</div>
+  </main>;
+}
 
-  const handleAddTask = (status: 'todo' | 'in-progress' | 'review' | 'completed') => {
-    if (!currentSwarmId) return;
-
-    const newTask: SwarmTask = {
-      id: `task-${Date.now()}`,
-      title: 'New Task',
-      description: 'Task description',
-      status,
-      priority: 'medium',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-    addTask(currentSwarmId, newTask);
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
-      {/* Header */}
-      <div className="h-16 border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-30">
-        <div className="h-full px-6 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-foreground">Swarms</h1>
-          <button
-            onClick={handleNewSwarm}
-            className="btn-lobe-primary flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            New Swarm
-          </button>
-        </div>
-      </div>
-
-      <div className="flex h-[calc(100vh-64px)]">
-        {/* Swarms List */}
-        <div className="w-64 border-r border-border bg-card/30 overflow-y-auto">
-          <div className="p-4 space-y-2">
-            {swarms.map((swarm) => (
-              <button
-                key={swarm.id}
-                onClick={() => setCurrentSwarm(swarm.id)}
-                className={`w-full p-3 rounded-lg text-left transition-all duration-200 group flex items-center justify-between ${
-                  currentSwarmId === swarm.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-secondary text-foreground'
-                }`}
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate text-sm">{swarm.name}</p>
-                  <p className="text-xs opacity-70">{swarm.tasks.length} tasks</p>
-                </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteSwarm(swarm.id);
-                  }}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-500/20 rounded transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </button>
-            ))}
-            {swarms.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-8">
-                No swarms yet
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Kanban Board */}
-        {currentSwarm ? (
-          <div className="flex-1 flex flex-col">
-            {/* Swarm Header */}
-            <div className="h-16 border-b border-border bg-card px-6 flex items-center justify-between">
-              <div>
-                <h2 className="font-bold text-foreground">{currentSwarm.name}</h2>
-                <p className="text-xs text-muted-foreground capitalize">
-                  {currentSwarm.framework} • {currentSwarm.tasks.length} tasks
-                </p>
-              </div>
-            </div>
-
-            {/* Kanban Columns */}
-            <div className="flex-1 overflow-x-auto p-6">
-              <div className="flex gap-6 min-w-max">
-                {(['todo', 'in-progress', 'review', 'completed'] as const).map((status) => (
-                  <div key={status} className="flex-1 min-w-80">
-                    {/* Column Header */}
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-foreground capitalize">
-                        {status.replace('-', ' ')}
-                      </h3>
-                      <span className="px-2 py-1 rounded bg-secondary text-secondary-foreground text-xs font-medium">
-                        {currentSwarm.tasks.filter((t) => t.status === status).length}
-                      </span>
-                    </div>
-
-                    {/* Column Container */}
-                    <div className="bg-muted/30 rounded-lg p-4 min-h-96 space-y-3">
-                      {currentSwarm.tasks
-                        .filter((t) => t.status === status)
-                        .map((task) => (
-                          <div key={task.id} className="card-lobe cursor-grab active:cursor-grabbing">
-                            <h4 className="font-medium text-foreground mb-2">
-                              {task.title}
-                            </h4>
-                            <p className="text-sm text-muted-foreground mb-3">
-                              {task.description}
-                            </p>
-                            <div className="flex items-center justify-between text-xs">
-                              <span className={`px-2 py-1 rounded ${
-                                task.priority === 'high'
-                                  ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-100'
-                                  : task.priority === 'medium'
-                                    ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-100'
-                                    : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100'
-                              }`}>
-                                {task.priority}
-                              </span>
-                              <button
-                                onClick={() => {
-                                  const newStatus = status === 'completed' ? 'review' : 'completed';
-                                  updateTask(currentSwarm.id, task.id, { status: newStatus });
-                                }}
-                                className="p-1 hover:bg-secondary rounded transition-colors"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                      {/* Add Task Button */}
-                      <button
-                        onClick={() => handleAddTask(status)}
-                        className="w-full p-4 rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-secondary/30 transition-all text-muted-foreground hover:text-primary"
-                      >
-                        <Plus className="w-4 h-4 mx-auto" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <Grid3x3 className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-foreground mb-2">No Swarm Selected</h2>
-              <p className="text-muted-foreground mb-6">
-                Create a new swarm to get started with Kanban workflow
-              </p>
-              <button
-                onClick={handleNewSwarm}
-                className="btn-lobe-primary flex items-center gap-2 mx-auto"
-              >
-                <Plus className="w-4 h-4" />
-                New Swarm
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+function TaskCard({ task, expanded, executing, onToggle, onExecute, onUpdate, onDelete }: { task: SwarmTask; expanded: boolean; executing: boolean; onToggle: () => void; onExecute: () => void; onUpdate: (updates: Partial<SwarmTask>) => void; onDelete: () => void }) {
+  useEffect(() => { if (!executing) return; }, [executing]);
+  return <article className={`rounded-2xl border bg-card p-4 transition-all ${executing ? 'border-primary shadow-[0_0_24px_hsl(var(--primary)/.2)]' : 'border-border'}`}><div className="flex items-start gap-3"><button onClick={onToggle} aria-label={`Edit ${task.title}`} className="mt-1 rounded-lg p-1 text-muted-foreground hover:bg-secondary"><ChevronDown className={`size-4 transition-transform ${expanded ? 'rotate-180' : ''}`} /></button><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{task.title}</h3><span className="rounded-full bg-secondary px-2 py-1 text-[10px] uppercase text-muted-foreground">{task.priority}</span>{executing && <span className="animate-pulse text-[10px] uppercase text-primary">Traversing {task.activeNode}</span>}</div><p className="mt-1 text-sm leading-6 text-muted-foreground">{task.description}</p><div className="mt-3 flex flex-wrap gap-2 text-[10px] text-muted-foreground"><span>{task.status.replace('-', ' ')}</span><span>·</span><span>{task.estimatedMinutes} min</span><span>·</span><span>{task.executionCount} runs</span>{task.tags.map((tag) => <span key={tag} className="rounded bg-secondary px-2 py-1">#{tag}</span>)}</div></div><div className="flex items-center gap-1"><button onClick={onExecute} disabled={executing || task.status === 'completed'} aria-label={`Execute ${task.title}`} className="flex min-h-11 items-center gap-1 rounded-xl bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"><Play className="size-3.5" /> Execute</button><button onClick={onDelete} aria-label={`Delete ${task.title}`} className="min-h-11 rounded-xl p-3 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"><Trash2 className="size-4" /></button></div></div>{expanded && <div className="mt-4 grid gap-3 border-t border-border pt-4 md:grid-cols-4"><label className="text-xs text-muted-foreground">Status<select value={task.status} onChange={(e) => onUpdate({ status: e.target.value as SwarmTask['status'] })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-input px-2 text-foreground"><option value="todo">Todo</option><option value="in-progress">In progress</option><option value="review">Review</option><option value="blocked">Blocked</option><option value="completed">Completed</option></select></label><label className="text-xs text-muted-foreground">Priority<select value={task.priority} onChange={(e) => onUpdate({ priority: e.target.value as TaskPriority })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-input px-2 text-foreground"><option>low</option><option>medium</option><option>high</option><option>critical</option></select></label><label className="text-xs text-muted-foreground">Schedule<select value={task.schedule} onChange={(e) => onUpdate({ schedule: e.target.value as TaskSchedule })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-input px-2 text-foreground"><option>manual</option><option>next</option><option>hourly</option><option>daily</option></select></label><label className="text-xs text-muted-foreground">Estimate (min)<input type="number" min="1" value={task.estimatedMinutes} onChange={(e) => onUpdate({ estimatedMinutes: Number(e.target.value) })} className="mt-1 min-h-11 w-full rounded-lg border border-border bg-input px-2 text-foreground" /></label><label className="text-xs text-muted-foreground md:col-span-4">Description<textarea value={task.description} onChange={(e) => onUpdate({ description: e.target.value })} className="mt-1 min-h-24 w-full rounded-lg border border-border bg-input p-3 text-sm text-foreground" /></label><div className="flex items-center gap-2 text-xs text-muted-foreground md:col-span-4"><Route className="size-4 text-primary" /> Route: {task.activeNode ?? 'NEXUS'} → ORCHESTRATOR → VALIDATOR → PUBLISHER</div></div>}</article>;
 }
