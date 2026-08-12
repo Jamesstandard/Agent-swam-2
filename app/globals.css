@@ -95,24 +95,24 @@
 
 .dark {
   color-scheme: dark;
-  --background: #1a1a1a;
-  --foreground: #f0f0f0;
-  --card: #2d2d2d;
-  --card-foreground: #f0f0f0;
-  --popover: #2d2d2d;
-  --popover-foreground: #f0f0f0;
-  --primary: #0078d4;
+  --background: #080b12;
+  --foreground: #f8fafc;
+  --card: #121827;
+  --card-foreground: #f8fafc;
+  --popover: #121827;
+  --popover-foreground: #f8fafc;
+  --primary: #6366f1;
   --primary-foreground: #ffffff;
-  --secondary: #1a3a52;
-  --secondary-foreground: #00bcf2;
-  --muted: #404040;
-  --muted-foreground: #999999;
-  --accent: #00bcf2;
-  --accent-foreground: #1a1a1a;
-  --destructive: #f1707a;
-  --border: #404040;
-  --input: #2d2d2d;
-  --ring: #00bcf2;
+  --secondary: #172033;
+  --secondary-foreground: #c4b5fd;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #8b5cf6;
+  --accent-foreground: #ffffff;
+  --destructive: #fb7185;
+  --border: #263248;
+  --input: #121827;
+  --ring: #818cf8;
   --chart-1: #0078d4;
   --chart-2: #00bcf2;
   --chart-3: #107c10;
@@ -281,7 +281,10 @@
   .canvas-grid { background-color: #111318; background-image: radial-gradient(rgba(148,163,184,.22) 1px, transparent 1px); background-size: 24px 24px; }
   .canvas-node { backdrop-filter: blur(10px); }
   .graph-grid { background-color: #0d1015; background-image: radial-gradient(rgba(103,232,249,.16) 1px, transparent 1px), linear-gradient(rgba(103,232,249,.025) 1px, transparent 1px), linear-gradient(90deg, rgba(103,232,249,.025) 1px, transparent 1px); background-size: 24px 24px, 120px 120px, 120px 120px; }
+  .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-none::-webkit-scrollbar { display: none; }
 }
+
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
